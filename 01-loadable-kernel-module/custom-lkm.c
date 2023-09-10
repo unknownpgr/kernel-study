@@ -67,6 +67,16 @@ static ssize_t custom_read(struct file *file, char __user *buf, size_t len, loff
         sprintf(tmp_buffer, "%d %s\n", task->pid, task->comm);
         strcat(output_buffer, tmp_buffer);
     }
+
+    // Add some other information
+    custom_device_data *device_data_addr = data;
+    sprintf(tmp_buffer, "device_data_addr: %p\n", device_data_addr);
+    strcat(output_buffer, tmp_buffer);
+
+    int *local_variable_addr = &count;
+    sprintf(tmp_buffer, "local_variable_addr: %p\n", local_variable_addr);
+    strcat(output_buffer, tmp_buffer);
+
     return fill_buffer(output_buffer, buf, len, offset);
 }
 
