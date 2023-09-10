@@ -7,3 +7,7 @@ all:
 
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+
+load:
+	sudo rmmod custom-lkm || true
+	sudo insmod custom-lkm.ko
