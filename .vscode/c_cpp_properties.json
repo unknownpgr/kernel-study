@@ -2,8 +2,13 @@
   "configurations": [
     {
       "name": "Linux",
-      "includePath": ["${workspaceFolder}/**"],
-      "defines": [],
+      "defines": ["__GNUC__", "__KERNEL__", "KBUILD_MODNAME=\"custom-lkm\""],
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/lib/modules/5.4.0-107-generic/build/include",
+        "/usr/src/linux-headers-5.4.0-107/arch/x86/include",
+        "/usr/src/linux-headers-5.4.0-107-generic/arch/x86/include/generated"
+      ],
       "compilerPath": "/usr/bin/gcc",
       "cStandard": "gnu11",
       "cppStandard": "gnu++11",
