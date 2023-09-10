@@ -2,6 +2,7 @@
   "configurations": [
     {
       "name": "Linux",
+      // This define is important
       "defines": ["__GNUC__", "__KERNEL__", "KBUILD_MODNAME=\"custom-lkm\""],
       "includePath": [
         "${workspaceFolder}/**",
