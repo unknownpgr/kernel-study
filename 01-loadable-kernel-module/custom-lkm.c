@@ -6,6 +6,7 @@
 #include <linux/device.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
+#include <linux/sched.h>
 
 typedef struct _custom_device_data
 {
@@ -25,47 +26,48 @@ static int custom_open(struct inode *inode, struct file *file)
     return 0;
 }
 
+static int fill_buffer(char *output, char *buf, size_t len, loff_t *offset)
+{
+    int output_length = strlen(output);
+    int length_to_user = output_length - (*offset);
+    if (length_to_user > len)
+        length_to_user = len;
+    if (length_to_user < 0)
+        return 0;
+    char tmp_buf[100] = {0};
+    for (int i = 0; i < length_to_user; i++)
+        tmp_buf[i] = output[*offset + i];
+    if (copy_to_user(buf, tmp_buf, length_to_user))
+        return -EFAULT;
+    *offset += length_to_user;
+    return length_to_user;
+}
+
 static ssize_t custom_read(struct file *file, char __user *buf, size_t len, loff_t *offset)
 {
     custom_device_data *custom_data;
     custom_data = (custom_device_data *)file->private_data;
 
-    printk("User requested %d bytes from device\n", len);
-
-    int index = -1;
-    for (int i = 0; i < DEVICE_COUNT; i++)
+    struct task_struct *tasks[100] = {NULL};
+    int count = 0;
+    struct task_struct *task = current;
+    // Go up to the root of the process tree
+    while (true)
     {
-        if (file->private_data == data + i)
-        {
-            index = i;
+        tasks[count++] = task;
+        if (task == task->parent)
             break;
-        }
+        task = task->parent;
     }
-
-    char buffer[100] = {0};
-    sprintf(buffer, "Hello from device %d\n", index);
-    int length = strlen(buffer);
-
-    char buffer2[100] = {0};
-    int length_to_copy = length > len ? len : length;
-    for (int i = 0; i < length_to_copy; i++)
+    char output_buffer[500] = {0};
+    char tmp_buffer[100] = {0};
+    for (int i = count - 1; i >= 0; i--)
     {
-        int index = (*offset + i) % length;
-        buffer2[i] = buffer[index];
+        task = tasks[i];
+        sprintf(tmp_buffer, "%d %s\n", task->pid, task->comm);
+        strcat(output_buffer, tmp_buffer);
     }
-
-    *offset += length_to_copy;
-    printk("Sending %d bytes to user\n", length_to_copy);
-
-    int erorr = copy_to_user(buf, buffer2, length_to_copy);
-
-    if (erorr != 0)
-    {
-        printk("error in copy_to_user\n");
-        return -EFAULT;
-    }
-
-    return length_to_copy;
+    return fill_buffer(output_buffer, buf, len, offset);
 }
 
 static int custom_release(struct inode *inode, struct file *file)
@@ -75,7 +77,7 @@ static int custom_release(struct inode *inode, struct file *file)
 
 static int custom_dev(struct device *dev, struct kobj_uevent_env *env)
 {
-    add_uevent_var(env, "DEVMODE=%#o", 0440);
+    add_uevent_var(env, "DEVMODE=%#o", 0660);
     return 0;
 }
 
